@@ -47,6 +47,7 @@ VERSION_APPLIER     := $(ROOT_DIR)/Scripts/apply-version.sh
 DEB_VERIFIER        := $(ROOT_DIR)/Scripts/verify-deb.sh
 ACCESSIBILITY_GATE  := $(ROOT_DIR)/Scripts/check-accessibility.py
 STALE_STRINGS_GATE  := $(ROOT_DIR)/Scripts/check-stale-strings.py
+FLOOR_AUDIT         := $(ROOT_DIR)/Scripts/audit-ios-floor.sh
 # Everything the Inspector app target compiles, which is where UIKit views
 # live. The daemon and the CLI have no views, and the harnesses are not shipped.
 APP_SOURCE_ROOTS    := "$(ROOT_DIR)/Inspector" "$(ROOT_DIR)/Shared" "$(ROOT_DIR)/InspectorClient"
@@ -123,6 +124,7 @@ check:
 	@test -x "$(VERSION_APPLIER)" || { echo "error: apply-version.sh is not executable" >&2; exit 66; }
 	@test -x "$(DEB_VERIFIER)" || { echo "error: verify-deb.sh is not executable" >&2; exit 66; }
 	@test -x "$(ACCESSIBILITY_GATE)" || { echo "error: check-accessibility.py is not executable" >&2; exit 66; }
+	@test -x "$(FLOOR_AUDIT)" || { echo "error: audit-ios-floor.sh is not executable" >&2; exit 66; }
 	@for xcconfig in Version Base Development Release; do \
 		test -f "$(CONFIG_DIR)/$$xcconfig.xcconfig" || { echo "error: Configuration/$$xcconfig.xcconfig is missing" >&2; exit 66; }; \
 	done
@@ -187,7 +189,15 @@ build: check harness bump-build
 		-destination "generic/platform=iOS" \
 		build
 
+# A clean build says nothing about the floor: a library, a build version or a
+# Swift runtime symbol newer than iOS $(MINIMUM_IOS_VERSION) kills the app in
+# dyld before `main`, and nothing warns. Nothing is packaged until every
+# binary that ships passes; verify-deb.sh audits the payload again.
 deb: build
+	"$(FLOOR_AUDIT)" "$(MINIMUM_IOS_VERSION)" \
+		"$(APP_BUNDLE)" \
+		"$(DAEMON_BINARY)" \
+		"$(CLI_BINARY)"
 	"$(DEB_PACKAGER)" \
 		"$(APP_BUNDLE)" \
 		"$(DAEMON_BINARY)" \

@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# Verify a packaged Inspector .deb: control fields, payload layout, and the
-# install prefix baked into the LaunchDaemon plist and maintainer scripts.
+# Verify a packaged Inspector .deb: control fields, payload layout, the
+# install prefix baked into the LaunchDaemon plist and maintainer scripts, and
+# that every binary it ships can launch on the iOS its control file claims.
 
 set -Eeuo pipefail
+
+repository_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 if [[ "$#" -ne 5 ]]; then
     echo "usage: $0 <deb> <package-id> <version> <architecture> <install-prefix>" >&2
@@ -68,6 +71,18 @@ fi
 payload_root="$(mktemp -d "${TMPDIR:-/tmp}/inspector-verify.XXXXXX")"
 trap 'rm -rf "$payload_root"' EXIT
 dpkg-deb -x "$deb" "$payload_root"
+
+# The floor is the one the package promises (`firmware (>= x.y)`), audited on
+# the binaries as shipped: the app with its embedded libraries, the daemon, the
+# CLI and the CLI's own copy of the concurrency runtime.
+floor="$(dpkg-deb -f "$deb" Depends | sed -n 's/.*firmware (>= \([0-9.]*\)).*/\1/p')"
+[[ -n "$floor" ]] || { echo "error: Depends names no firmware floor" >&2; exit 65; }
+"$repository_root/Scripts/audit-ios-floor.sh" "$floor" \
+    "$payload_root$install_prefix/Applications/Inspector.app" \
+    "$payload_root$install_prefix/usr/libexec/inspectord" \
+    "$payload_root$install_prefix/usr/bin/inspector" \
+    "$payload_root$install_prefix/usr/lib/inspector"
+
 installed_plist="$payload_root$install_prefix/Library/LaunchDaemons/wiki.qaq.inspectord.plist"
 expect "LaunchDaemon label" "$(/usr/libexec/PlistBuddy -c 'Print :Label' "$installed_plist")" "wiki.qaq.inspectord"
 expect "LaunchDaemon program" \
