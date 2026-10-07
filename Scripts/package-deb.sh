@@ -88,6 +88,10 @@ installed_cli="$staging$install_prefix/usr/bin/inspector"
 installed_plist="$staging$install_prefix/Library/LaunchDaemons/wiki.qaq.inspectord.plist"
 mkdir -p "$debian" "$(dirname "$installed_app")" "$(dirname "$installed_daemon")" "$(dirname "$installed_cli")" "$(dirname "$installed_plist")"
 /usr/bin/ditto "$app_bundle" "$installed_app"
+# The monochrome icon needs no P3 bitmaps. Keep standard-gamut fallbacks for
+# both device families, along with all appearances and layered icon assets.
+xcrun --sdk iphoneos assetutil -i phone -p sRGB -i pad -p sRGB "$installed_app/Assets.car"
+xcrun --sdk iphoneos assetutil -Z "$installed_app/Assets.car"
 /usr/bin/ditto "$daemon_binary" "$installed_daemon"
 /usr/bin/ditto "$cli_binary" "$installed_cli"
 # Swift concurrency only ships with the system from iOS 15. The app carries the
@@ -100,6 +104,9 @@ installed_cli_runtime="$staging$install_prefix/usr/lib/inspector/libswift_Concur
     exit 66
 }
 mkdir -p "$(dirname "$installed_cli_runtime")"
+# Back-deployed runtimes include bitcode that is not needed on the device.
+# Strip it before copying so both consumers receive the same runtime.
+xcrun bitcode_strip "$concurrency_runtime" -r -o "$concurrency_runtime"
 /usr/bin/ditto "$concurrency_runtime" "$installed_cli_runtime"
 chmod 0644 "$concurrency_runtime" "$installed_cli_runtime"
 sed -e "s|@PREFIX@|$install_prefix|g" "$launch_plist" >"$installed_plist"
