@@ -89,8 +89,11 @@ installed_plist="$staging$install_prefix/Library/LaunchDaemons/wiki.qaq.inspecto
 mkdir -p "$debian" "$(dirname "$installed_app")" "$(dirname "$installed_daemon")" "$(dirname "$installed_cli")" "$(dirname "$installed_plist")"
 /usr/bin/ditto "$app_bundle" "$installed_app"
 # The monochrome icon needs no P3 bitmaps. Keep standard-gamut fallbacks for
-# both device families, along with all appearances and layered icon assets.
-xcrun --sdk iphoneos assetutil -i phone -p sRGB -i pad -p sRGB "$installed_app/Assets.car"
+# both device families at every scale, along with all appearances and layers.
+xcrun --sdk iphoneos assetutil \
+    -i phone -s 1 -p sRGB -i phone -s 2 -p sRGB -i phone -s 3 -p sRGB \
+    -i pad -s 1 -p sRGB -i pad -s 2 -p sRGB -i pad -s 3 -p sRGB \
+    "$installed_app/Assets.car"
 xcrun --sdk iphoneos assetutil -Z "$installed_app/Assets.car"
 /usr/bin/ditto "$daemon_binary" "$installed_daemon"
 /usr/bin/ditto "$cli_binary" "$installed_cli"
