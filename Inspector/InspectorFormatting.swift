@@ -118,7 +118,7 @@ enum InspectorFormat {
         let info = Bundle.main.infoDictionary
         let version = info?["CFBundleShortVersionString"] as? String ?? "0"
         let build = info?["CFBundleVersion"] as? String ?? "0"
-        return "v\(version)(\(build))"
+        return "\(version) (\(build))"
     }
 }
 
