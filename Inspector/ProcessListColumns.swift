@@ -6,18 +6,20 @@ enum ProcessColumn: CaseIterable {
     case cpu
     case memory
     case threads
+    case user
 
     // When a row is too narrow for all of them, the least telling go first.
-    static let byPriority: [ProcessColumn] = [.cpu, .memory, .pid, .threads]
+    static let byPriority: [ProcessColumn] = [.cpu, .memory, .pid, .threads, .user]
 
     // Headings are short, since a column is at least as wide as its
     // heading; VoiceOver reads the sort order's longer name instead.
     var title: String {
         switch self {
         case .pid: String(localized: "PID")
-        case .cpu: String(localized: "CPU")
-        case .memory: String(localized: "Memory")
+        case .cpu: String(localized: "CPU") + "%"
+        case .memory: String(localized: "Mem")
         case .threads: String(localized: "Threads")
+        case .user: String(localized: "User")
         }
     }
 
@@ -27,6 +29,7 @@ enum ProcessColumn: CaseIterable {
         case .cpu: .cpu
         case .memory: .memory
         case .threads: .threads
+        case .user: .user
         }
     }
 }
@@ -93,23 +96,34 @@ final class ProcessListMetrics {
                 InspectorFormat.memoryColumn(999 << 10),
             ],
             .threads: ["888"],
+            .user: ["mobile", "_accessoryd", "UID 8888888888"],
         ]
         // A heading also has to fit the arrow it carries while sorted.
-        let arrow = UIImage(systemName: "chevron.down", withConfiguration: Self.arrowConfiguration)
-        let arrowWidth = ceil(arrow?.size.width ?? 8)
         var widths: [ProcessColumn: CGFloat] = [:]
         for column in ProcessColumn.allCases {
-            var width = Self.width(of: column.title, in: titleFont) + arrowWidth
+            var width = Self.headingWidth(column.title, font: titleFont)
             for sample in samples[column, default: []] {
                 width = max(width, Self.width(of: sample, in: valueFont))
             }
-            widths[column] = width
+            widths[column] = column == .user
+                ? max(Self.headingWidth(column.title, font: titleFont), ceil(width * 0.8))
+                : width
         }
         self.widths = widths
     }
 
     // The sorted heading's arrow, the size a detail table's is.
     static let arrowConfiguration = UIImage.SymbolConfiguration(pointSize: 8, weight: .bold)
+
+    // Measure the actual button, including UIKit's image/title spacing.
+    static func headingWidth(_ title: String, font: UIFont) -> CGFloat {
+        let button = UIButton(type: .system)
+        button.titleLabel?.font = font
+        button.setPreferredSymbolConfiguration(arrowConfiguration, forImageIn: .normal)
+        button.setTitle(title, for: .normal)
+        button.setImage(UIImage(systemName: "chevron.down"), for: .normal)
+        return ceil(button.intrinsicContentSize.width)
+    }
     static let rowPadding: CGFloat = 8
     static let stackedPadding: CGFloat = 10
     static let lineSpacing: CGFloat = 2

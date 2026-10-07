@@ -183,7 +183,7 @@ final class ProcessDetailViewController: UITableViewController {
                 value: InspectorFormat.percent(liveRow?.cpuFraction ?? 0)
             ),
             .value(
-                label: String(localized: "Total CPU Time"),
+                label: String(localized: "CPU Time"),
                 value: InspectorFormat.cpuTime(
                     stats.totalCPUTime,
                     numerator: model.machTimebaseNumerator,
@@ -203,11 +203,11 @@ final class ProcessDetailViewController: UITableViewController {
                 value: InspectorFormat.memoryBytes(stats.virtualSize)
             ),
             .value(
-                label: String(localized: "Read from Disk"),
+                label: String(localized: "Disk Reads"),
                 value: InspectorFormat.dataBytes(stats.diskBytesRead)
             ),
             .value(
-                label: String(localized: "Written to Disk"),
+                label: String(localized: "Disk Writes"),
                 value: InspectorFormat.dataBytes(stats.diskBytesWritten)
             ),
         ]

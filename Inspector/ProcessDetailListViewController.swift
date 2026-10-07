@@ -5,7 +5,7 @@ final class ProcessDetailListViewController: UITableViewController, UISearchResu
     private let identity: ProcessIdentity
     private let processName: String
     private let model: ProcessListModel
-    private let columns: [DetailColumn]
+    private var columns: [DetailColumn]
     private let defaults = UserDefaults.standard
 
     private var detail: ProcessDetailSnapshot?
@@ -24,14 +24,12 @@ final class ProcessDetailListViewController: UITableViewController, UISearchResu
         didSet {
             guard sort != oldValue else { return }
             defaults.set(sort.order.rawValue, forKey: sortOrderKey)
-            defaults.set(sort.ascending, forKey: sortAscendingKey)
             rebuildVisible()
         }
     }
 
     // One stored order per kind: "sort by size" means nothing to threads.
     private var sortOrderKey: String { "processDetail.sortOrder.\(kind.rawValue)" }
-    private var sortAscendingKey: String { "processDetail.sortAscending.\(kind.rawValue)" }
 
     init(
         kind: ProcessDetailKind,
@@ -46,11 +44,9 @@ final class ProcessDetailListViewController: UITableViewController, UISearchResu
         columns = ProcessDetailTable.columns(for: kind)
         let fallback = ProcessDetailSort.default(for: kind)
         let orderKey = "processDetail.sortOrder.\(kind.rawValue)"
-        let ascendingKey = "processDetail.sortAscending.\(kind.rawValue)"
         sort = ProcessDetailSort(
             order: defaults.string(forKey: orderKey)
-                .flatMap(ProcessDetailSortOrder.init(rawValue:)) ?? fallback.order,
-            ascending: defaults.object(forKey: ascendingKey) as? Bool ?? fallback.ascending
+                .flatMap(ProcessDetailSortOrder.init(rawValue:)) ?? fallback.order
         )
         // Plain rows keep the header pinned to the top of the list while it
         // scrolls, which is what makes this read as a table.
@@ -120,7 +116,7 @@ final class ProcessDetailListViewController: UITableViewController, UISearchResu
                 for: indexPath
             )
             if let self, let row = self.rowsByID[id] {
-                (cell as? DetailTableCell)?.configure(columns: self.columns, cells: row.cells)
+                (cell as? DetailTableCell)?.configure(columns: self.columns, cells: row.cells, inspection: row.inspection)
             }
             // Nothing on a row says that it opens onto the whole record.
             cell.accessibilityHint = String(localized: "Shows the full record")
@@ -138,6 +134,17 @@ final class ProcessDetailListViewController: UITableViewController, UISearchResu
         guard text != searchText else { return }
         searchText = text
         rebuildVisible()
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        guard isViewLoaded,
+              traitCollection.preferredContentSizeCategory != previousTraitCollection?.preferredContentSizeCategory
+        else { return }
+        columns = ProcessDetailTable.columns(for: kind)
+        render()
+        tableView.beginUpdates()
+        tableView.endUpdates()
     }
 
     // MARK: Rendering
@@ -160,7 +167,7 @@ final class ProcessDetailListViewController: UITableViewController, UISearchResu
             guard let indexPath = tableView.indexPath(for: cell),
                   let id = dataSource.itemIdentifier(for: indexPath),
                   let row = rowsByID[id] else { continue }
-            cell.configure(columns: columns, cells: row.cells)
+            cell.configure(columns: columns, cells: row.cells, inspection: row.inspection)
         }
         (tableView.headerView(forSection: 0) as? DetailTableHeaderView)?
             .configure(columns: columns, sort: sort)

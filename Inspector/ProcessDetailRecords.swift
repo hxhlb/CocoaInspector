@@ -33,9 +33,9 @@ enum ProcessDetailSortOrder: String, CaseIterable, Identifiable {
         }
     }
 
-    // Which way a column reads best the first time it is tapped: counters and
+    // Each column has one direction: counters and
     // sizes are interesting at the top, names and addresses read in order.
-    var sortsAscendingByDefault: Bool {
+    var isAscending: Bool {
         switch self {
         case .cpu, .priority, .references, .size: false
         case .state, .name, .descriptor, .fileKind, .port, .rights, .address: true
@@ -58,26 +58,19 @@ enum ProcessDetailSortOrder: String, CaseIterable, Identifiable {
     }
 }
 
-// A tapped column header carries both a key and a direction, so the two travel
-// together — the direction alone is meaningless.
+// Direction belongs to the column, just as it does on the process list.
 struct ProcessDetailSort: Equatable {
     var order: ProcessDetailSortOrder
-    var ascending: Bool
+    var ascending: Bool { order.isAscending }
 
     static func `default`(for kind: ProcessDetailKind) -> ProcessDetailSort {
         let order = ProcessDetailSortOrder.default(for: kind)
-        return ProcessDetailSort(order: order, ascending: order.sortsAscendingByDefault)
+        return ProcessDetailSort(order: order)
     }
 
-    // Tapping the sorted column reverses it; tapping another switches to it in
-    // whichever direction that column reads best — the way Finder behaves.
+    // Selecting the current column leaves the order unchanged.
     mutating func select(_ order: ProcessDetailSortOrder) {
-        if self.order == order {
-            ascending.toggle()
-        } else {
-            self.order = order
-            ascending = order.sortsAscendingByDefault
-        }
+        self.order = order
     }
 }
 

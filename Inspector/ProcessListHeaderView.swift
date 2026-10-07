@@ -63,6 +63,7 @@ private final class ProcessColumnHeadingsView: UIView {
         super.init(frame: frame)
         for heading in headings {
             let button = heading.button
+            button.setPreferredSymbolConfiguration(ProcessListMetrics.arrowConfiguration, forImageIn: .normal)
             let title = heading.column?.title ?? String(localized: "Name")
             button.setTitle(title, for: .normal)
             button.titleLabel?.lineBreakMode = .byClipping
@@ -188,7 +189,7 @@ private extension ProcessSortOrder {
     // The direction areInOrder sorts in, which the arrow shows.
     var isAscending: Bool {
         switch self {
-        case .pid, .name: true
+        case .pid, .name, .user: true
         case .cpu, .memory, .threads: false
         }
     }

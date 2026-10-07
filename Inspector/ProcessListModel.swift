@@ -18,6 +18,7 @@ enum ProcessSortOrder: String, CaseIterable, Identifiable {
     case threads = "Threads"
     case pid = "PID"
     case name = "Name"
+    case user = "User"
 
     var id: Self { self }
 
@@ -30,6 +31,7 @@ enum ProcessSortOrder: String, CaseIterable, Identifiable {
         case .threads: String(localized: "Threads")
         case .pid: String(localized: "PID")
         case .name: String(localized: "Name")
+        case .user: String(localized: "User")
         }
     }
 
@@ -53,8 +55,10 @@ enum ProcessSortOrder: String, CaseIterable, Identifiable {
             return lhs.record.pid < rhs.record.pid
         case .pid:
             return lhs.record.pid < rhs.record.pid
-        case .name:
-            switch lhs.record.name.localizedCaseInsensitiveCompare(rhs.record.name) {
+        case .name, .user:
+            let lhsName = self == .user ? InspectorFormat.userName(lhs.record.userID) : lhs.record.name
+            let rhsName = self == .user ? InspectorFormat.userName(rhs.record.userID) : rhs.record.name
+            switch lhsName.localizedCaseInsensitiveCompare(rhsName) {
             case .orderedAscending: return true
             case .orderedDescending: return false
             case .orderedSame: return lhs.record.pid < rhs.record.pid

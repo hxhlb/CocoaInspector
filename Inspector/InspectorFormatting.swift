@@ -5,31 +5,30 @@ enum InspectorFormat {
         ByteCountFormatter.string(fromByteCount: Int64(clamping: value), countStyle: .memory)
     }
 
-    // The process list's memory column. ByteCountFormatter keeps a unit until
-    // the next one is a whole step away, so 1,000 MB to 1,023.9 MB come out
-    // four digits wide; the column is sized for three, so those move up a
-    // unit and read 0.98 GB.
+    // Compact binary units for the list; keep Foundation's localized numbers
+    // and precision. Move up at 1000 so values stay within three integer digits.
     static func memoryColumn(_ value: UInt64) -> String {
-        let kibibyte: UInt64 = 1 << 10
-        let mebibyte = kibibyte << 10
-        let gibibyte = mebibyte << 10
-        if value >= 1000 * mebibyte, value < gibibyte {
-            return gigabyteFormatter.string(fromByteCount: Int64(value))
+        let bytes = Int64(clamping: value)
+        var scaled = Double(bytes)
+        var index = 0
+        while scaled >= 1000, index < memoryColumnFormats.count - 1 {
+            scaled /= 1024
+            index += 1
         }
-        if value >= 1000 * kibibyte, value < mebibyte {
-            return megabyteFormatter.string(fromByteCount: Int64(value))
-        }
-        return memoryBytes(value)
+        let (formatter, suffix) = memoryColumnFormats[index]
+        return formatter.string(fromByteCount: bytes) + suffix
     }
 
-    private static let gigabyteFormatter = memoryFormatter(unit: .useGB)
-    private static let megabyteFormatter = memoryFormatter(unit: .useMB)
-
-    private static func memoryFormatter(unit: ByteCountFormatter.Units) -> ByteCountFormatter {
+    private static let memoryColumnFormats: [(ByteCountFormatter, String)] = [
+        (ByteCountFormatter.Units.useBytes, "B"), (.useKB, "K"), (.useMB, "M"),
+        (.useGB, "G"), (.useTB, "T"), (.usePB, "P"), (.useEB, "E"),
+    ].map { unit, suffix in
         let formatter = ByteCountFormatter()
         formatter.countStyle = .memory
         formatter.allowedUnits = unit
-        return formatter
+        formatter.includesUnit = false
+        formatter.allowsNonnumericFormatting = false
+        return (formatter, suffix)
     }
 
     static func dataBytes(_ value: UInt64) -> String {

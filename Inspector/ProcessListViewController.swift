@@ -431,10 +431,7 @@ final class ProcessListViewController: UITableViewController, UISearchResultsUpd
         }(),
         accessibilityLabel: String(localized: "System Stats")
     ) { [weak self] in
-        InspectorMenu(
-            title: String(localized: "This Device"),
-            sections: [self?.statsItems() ?? []]
-        )
+        InspectorMenu(sections: [self?.statsItems() ?? []])
     }
 
     // Green while samples keep arriving, yellow while they are paused: the
@@ -484,20 +481,20 @@ final class ProcessListViewController: UITableViewController, UISearchResultsUpd
     private func statsItems() -> [InspectorMenuItem] {
         let cpuUsage = InspectorFormat.percent(model.totalCPUFraction)
         let cores = Int(model.system.activeProcessorCount)
-        let cpu = cores > 0
-            ? "\(cpuUsage) · \(String(localized: "\(cores) cores"))"
-            : cpuUsage
+        let cpuTitle = cores > 0
+            ? "\(String(localized: "CPU")) (\(String(localized: "\(cores) cores")))"
+            : String(localized: "CPU")
         let totalMemory = model.system.physicalMemory
         let freeMemory = model.system.freeMemory
         let usedMemory = totalMemory > freeMemory ? totalMemory - freeMemory : 0
         let memory = String(
-            localized: "\(InspectorFormat.memoryBytes(usedMemory)) of \(InspectorFormat.memoryBytes(totalMemory)) in use"
+            localized: "\(InspectorFormat.memoryBytes(usedMemory)) of \(InspectorFormat.memoryBytes(totalMemory))"
         )
         let processCount = model.rows.count
         let threadCount = Int(model.system.totalThreadCount)
-        let processes = String(localized: "\(processCount) processes · \(threadCount) threads")
+        let processes = String(localized: "\(processCount) processes, \(threadCount) threads")
         return [
-            stat(String(localized: "CPU"), value: cpu, symbolName: "cpu"),
+            stat(cpuTitle, value: cpuUsage, symbolName: "cpu"),
             stat(String(localized: "Memory"), value: memory, symbolName: "memorychip"),
             stat(String(localized: "Processes"), value: processes, symbolName: "square.stack.3d.up"),
             stat(

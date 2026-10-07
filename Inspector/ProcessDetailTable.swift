@@ -10,7 +10,7 @@ struct DetailColumn {
     let title: String
     // nil takes whatever width the fixed columns leave over. Exactly one
     // column per table is flexible; the rest are sized for their content.
-    let width: CGFloat?
+    var width: CGFloat?
     var alignment: Alignment = .leading
     var style: Style = .plain
     var lineBreakMode: NSLineBreakMode = .byTruncatingTail
@@ -37,26 +37,24 @@ struct DetailColumn {
 
 enum ProcessDetailTable {
     static func columns(for kind: ProcessDetailKind) -> [DetailColumn] {
-        switch kind {
+        let columns: [DetailColumn] = switch kind {
         case .summary:
             []
         case .threads:
             [
                 DetailColumn(order: .name, title: String(localized: "Thread"), width: nil),
-                DetailColumn(order: .state, title: String(localized: "State"), width: 74),
+                DetailColumn(order: .state, title: String(localized: "State"), width: 80),
                 DetailColumn(
                     order: .priority,
                     title: String(localized: "Pri"),
-                    // Fits localized titles such as “优先级” together with
-                    // the sort chevron without breaking row/header alignment.
-                    width: 60,
+                    width: 34,
                     alignment: .trailing,
                     style: .number
                 ),
                 DetailColumn(
                     order: .cpu,
-                    title: String(localized: "CPU"),
-                    width: 48,
+                    title: String(localized: "CPU") + "%",
+                    width: ProcessListMetrics.metrics(for: .unspecified).width(of: .cpu),
                     alignment: .trailing,
                     style: .number
                 ),
@@ -101,11 +99,19 @@ enum ProcessDetailTable {
                 DetailColumn(
                     order: .references,
                     title: String(localized: "Ref"),
-                    width: 28,
+                    width: 38,
                     alignment: .trailing,
                     style: .number
                 ),
             ]
+        }
+        let font = UIFont.inspector(.caption1, weight: .semibold)
+        return columns.map { column in
+            var column = column
+            if let width = column.width {
+                column.width = max(width, ProcessListMetrics.headingWidth(column.title, font: font))
+            }
+            return column
         }
     }
 
@@ -115,7 +121,7 @@ enum ProcessDetailTable {
             thread.name.isEmpty ? InspectorFormat.hex(thread.id) : thread.name,
             InspectorFormat.threadState(thread.runState),
             "\(thread.currentPriority)",
-            String(format: "%.1f%%", Double(thread.cpuUsage) / 10),
+            String(format: "%.1f", Double(thread.cpuUsage) / 10),
         ]
     }
 
@@ -139,8 +145,8 @@ enum ProcessDetailTable {
     static func cells(module: ModuleRecord) -> [String] {
         [
             ProcessDetailRecords.moduleName(module),
-            InspectorFormat.hex(module.address),
-            module.size > 0 ? InspectorFormat.memoryBytes(module.size) : "—",
+            String(module.address, radix: 16),
+            module.size > 0 ? InspectorFormat.memoryColumn(module.size) : "—",
             "\(module.referenceCount)",
         ]
     }
@@ -341,6 +347,7 @@ final class DetailTableHeaderView: UITableViewHeaderFooterView {
             buttons.forEach { $0.removeFromSuperview() }
             buttons = columns.indices.map { index in
                 let button = UIButton(type: .system)
+                button.setPreferredSymbolConfiguration(ProcessListMetrics.arrowConfiguration, forImageIn: .normal)
                 button.tag = index
                 button.titleLabel?.font = .inspector(.caption1, weight: .semibold)
                 button.titleLabel?.adjustsFontForContentSizeCategory = true
@@ -367,10 +374,6 @@ final class DetailTableHeaderView: UITableViewHeaderFooterView {
                 for: .normal
             )
             button.tintColor = isSorted ? tintColor : .secondaryLabel
-            // The arrow trails the title.
-            button.semanticContentAttribute = effectiveUserInterfaceLayoutDirection == .rightToLeft
-                ? .forceLeftToRight
-                : .forceRightToLeft
             // The title is abbreviated to whatever the column is wide enough
             // for ("Pri", "FD", "Refs"), so VoiceOver reads the sort order's
             // full name instead. Voice Control keeps accepting the
@@ -385,8 +388,9 @@ final class DetailTableHeaderView: UITableViewHeaderFooterView {
                     : String(localized: "Sorted descending"))
                 : nil
             button.accessibilityHint = isSorted
-                ? String(localized: "Reverses the sort order")
+                ? nil
                 : String(localized: "Sorts the list by this column")
+            button.accessibilityTraits = isSorted ? [.button, .selected] : .button
         }
         setNeedsLayout()
     }
@@ -406,6 +410,8 @@ final class DetailTableHeaderView: UITableViewHeaderFooterView {
                 layoutDirection: direction
             )
             button.contentHorizontalAlignment = alignment == .right ? .right : .left
+            // Keep the arrow inside the column, away from the aligned edge.
+            button.semanticContentAttribute = alignment == .right ? .forceLeftToRight : .forceRightToLeft
         }
     }
 
@@ -421,7 +427,7 @@ final class DetailTableCell: UITableViewCell {
     private var columns: [DetailColumn] = []
     private var labels: [UILabel] = []
 
-    func configure(columns: [DetailColumn], cells: [String]) {
+    func configure(columns: [DetailColumn], cells: [String], inspection: DetailRowInspection) {
         if columns.map(\.order) != self.columns.map(\.order) {
             labels.forEach { $0.removeFromSuperview() }
             labels = columns.enumerated().map { index, column in
@@ -433,13 +439,13 @@ final class DetailTableCell: UITableViewCell {
                 contentView.addSubview(label)
                 return label
             }
-            self.columns = columns
-            setNeedsLayout()
         }
+        self.columns = columns
+        setNeedsLayout()
         for (index, label) in labels.enumerated() {
             label.text = index < cells.count ? cells[index] : ""
         }
-        applyAccessibility(columns: columns, cells: cells)
+        applyAccessibility(columns: columns, cells: cells, fields: inspection.fields)
     }
 
     // The row is one VoiceOver stop rather than one per column: read on its
@@ -447,12 +453,18 @@ final class DetailTableCell: UITableViewCell {
     // ("Waiting", "47"), so every value is announced behind its column's name.
     // The sort order's name is used rather than the header's title, which is
     // abbreviated to fit the column, and the two are the same words otherwise.
-    private func applyAccessibility(columns: [DetailColumn], cells: [String]) {
+    private func applyAccessibility(columns: [DetailColumn], cells: [String], fields: [DetailField]) {
         isAccessibilityElement = true
         // Only punctuation separates the pairs; both halves arrive translated.
         accessibilityLabel = zip(columns, cells)
             .compactMap { column, value -> String? in
-                value.isEmpty ? nil : "\(column.order.label), \(value)"
+                // Read the full size and unit from the inspection, not the compact suffix.
+                let fullValue = column.order == .size
+                    ? (fields.first { $0.label == column.order.label }?.value ?? value)
+                    : value
+                // The unit lives in the heading visually; keep it in the spoken value.
+                let spokenValue = column.order == .cpu && !fullValue.isEmpty ? "\(fullValue)%" : fullValue
+                return spokenValue.isEmpty ? nil : "\(column.order.label), \(spokenValue)"
             }
             .joined(separator: ", ")
     }

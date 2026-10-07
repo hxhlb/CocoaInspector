@@ -17,6 +17,7 @@ final class ProcessRowCell: UITableViewCell {
     private let cpuLabel = UILabel()
     private let memoryLabel = UILabel()
     private let threadsLabel = UILabel()
+    private let userLabel = UILabel()
     private var metrics: ProcessListMetrics?
 
     // CPU use, as a fraction of one core, from which the figure stops
@@ -37,6 +38,8 @@ final class ProcessRowCell: UITableViewCell {
         nameLabel.lineBreakMode = .byTruncatingMiddle
         pidLabel.textColor = .secondaryLabel
         threadsLabel.textColor = .secondaryLabel
+        userLabel.textColor = .secondaryLabel
+        userLabel.lineBreakMode = .byTruncatingTail
         // A figure wider than its column's sample (a thousand threads) shrinks
         // to fit rather than losing digits.
         for label in [pidLabel, cpuLabel, memoryLabel, threadsLabel] {
@@ -44,7 +47,7 @@ final class ProcessRowCell: UITableViewCell {
             label.minimumScaleFactor = 0.7
             label.baselineAdjustment = .alignBaselines
         }
-        for view in [iconView, nameLabel, pidLabel, cpuLabel, memoryLabel, threadsLabel] {
+        for view in [iconView, nameLabel, pidLabel, cpuLabel, memoryLabel, threadsLabel, userLabel] {
             contentView.addSubview(view)
         }
     }
@@ -63,7 +66,7 @@ final class ProcessRowCell: UITableViewCell {
         if metrics !== self.metrics {
             self.metrics = metrics
             nameLabel.font = metrics.nameFont
-            for label in [pidLabel, cpuLabel, memoryLabel, threadsLabel] {
+            for label in [pidLabel, cpuLabel, memoryLabel, threadsLabel, userLabel] {
                 label.font = metrics.valueFont
             }
             setNeedsLayout()
@@ -74,13 +77,15 @@ final class ProcessRowCell: UITableViewCell {
         let threads = String(localized: "\(Int(row.record.threadCount)) threads")
         let cpu = InspectorFormat.percent(row.cpuFraction)
         let memory = InspectorFormat.memoryColumn(row.record.physicalFootprint)
+        let user = InspectorFormat.userName(row.record.userID)
         // Under a heading a column needs only the number; stacked, there is
         // no heading, so each figure says what it is.
         pidLabel.text = metrics.isStacked ? pid : "\(row.record.pid)"
         threadsLabel.text = metrics.isStacked ? threads : "\(row.record.threadCount)"
-        cpuLabel.text = cpu
+        cpuLabel.text = metrics.isStacked ? cpu : String(cpu.dropLast())
         cpuLabel.textColor = Self.cpuColor(row.cpuFraction)
         memoryLabel.text = memory
+        userLabel.text = user
         // Stacked figures sit side by side at their own widths.
         if metrics.isStacked { setNeedsLayout() }
 
@@ -91,12 +96,12 @@ final class ProcessRowCell: UITableViewCell {
         accessibilityLabel = [
             row.displayName,
             pid,
-            InspectorFormat.userName(row.record.userID),
+            user,
             threads,
         ].joined(separator: ", ")
         accessibilityValue = [
             "\(String(localized: "CPU")) \(cpu)",
-            "\(String(localized: "Memory")) \(memory)",
+            "\(String(localized: "Memory")) \(InspectorFormat.memoryBytes(row.record.physicalFootprint))",
         ].joined(separator: ", ")
     }
 
@@ -151,6 +156,7 @@ final class ProcessRowCell: UITableViewCell {
     // The name on its own line, then CPU and memory, then PID and threads,
     // each figure as wide as its text.
     private func layoutStacked(_ metrics: ProcessListMetrics) {
+        userLabel.isHidden = true
         let content = columnsRect
         let isRightToLeft = effectiveUserInterfaceLayoutDirection == .rightToLeft
         var icon = CGRect(
@@ -195,6 +201,7 @@ final class ProcessRowCell: UITableViewCell {
         case .cpu: cpuLabel
         case .memory: memoryLabel
         case .threads: threadsLabel
+        case .user: userLabel
         }
     }
 
