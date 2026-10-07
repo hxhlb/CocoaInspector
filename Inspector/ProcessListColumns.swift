@@ -72,7 +72,8 @@ final class ProcessListMetrics {
         iconSpacing = 10
         columnSpacing = (valueFont.pointSize * 0.75).rounded()
         minimumNameWidth = (nameFont.pointSize * 5.5).rounded()
-        titleRowHeight = ceil(titleFont.lineHeight) + 12
+        // The header's layout margins supply the same 16 pt as detail tables.
+        titleRowHeight = ceil(titleFont.lineHeight)
 
         let valueLine = ceil(valueFont.lineHeight)
         let nameLine = ceil(nameFont.lineHeight)

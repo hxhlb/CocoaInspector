@@ -34,6 +34,7 @@ final class InspectorMenuButton: UIButton {
     ) {
         self.provider = provider
         super.init(frame: CGRect(x: 0, y: 0, width: 36, height: 36))
+        setPreferredSymbolConfiguration(UIImage.SymbolConfiguration(scale: .large), forImageIn: .normal)
         setSymbol(symbolName)
         // Without one, the system reads the symbol's own name ("More").
         if let accessibilityLabel { self.accessibilityLabel = accessibilityLabel }
