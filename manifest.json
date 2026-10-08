@@ -1,6 +1,6 @@
 {
   "name": "Inspector",
-  "description": "Live process inspector for jailbroken iOS",
+  "description": "Live process inspector for iOS on custom firmware",
   "icon": "https://owngoal-dev.github.io/Inspector/icon.png",
   "homepage": "https://github.com/owngoal-dev/Inspector"
 }

@@ -1,6 +1,6 @@
 # CCPI Swift LaunchDaemon / XPC 架构调查
 
-本文定义 CCPI 在 iOS 16.0+ 自制固件环境中的进程边界、XPC 安全边界、按需采样生命周期和 jetsam/内存约束。已有完整实机验证基线仍是 iOS 17.3.1 + roothide；iOS 16.x 发布前必须重跑第 13 节清单。当前实现遵循“最小状态、先测量再加复杂度”：XPC connection 已提供的身份和 request/reply 关联不再用 nonce、sequence、request ID 或 CDHash policy 重复表达。
+本文定义 CCPI 在 iOS 16.0+ 自定义固件环境中的进程边界、XPC 安全边界、按需采样生命周期和 jetsam/内存约束。已有完整实机验证基线仍是 iOS 17.3.1 + roothide；iOS 16.x 发布前必须重跑第 13 节清单。当前实现遵循“最小状态、先测量再加复杂度”：XPC connection 已提供的身份和 request/reply 关联不再用 nonce、sequence、request ID 或 CDHash policy 重复表达。
 
 ## 目标和硬约束
 
@@ -13,7 +13,7 @@
 - daemon 只接受 deb 当前安装的 App/CLI 可执行文件，不接受“仅具有同名 entitlement”的其他进程。
 - `SIGTERM` / `SIGKILL` 必须来自当前活动、已认证且 lease 有效的 session 的一次性显式请求；不排队、不重试、不跨 session 保存。
 - daemon 必须以 jetsam 友好为首要约束：按需启动、固定上限、单请求、无历史、无 UI 格式化数据。
-- 普通沙盒 App 不应获得 mach lookup 权限或任何公开数据通道；同时不承诺对 root、自制固件上的 tweak 或系统级检测工具不可见。
+- 普通沙盒 App 不应获得 mach lookup 权限或任何公开数据通道；同时不承诺对 root、自定义固件上的 tweak 或系统级检测工具不可见。
 
 ## 1. 推荐结论：按需 LaunchDaemon + client-driven pull
 
@@ -224,7 +224,7 @@ daemon 必须从 XPC connection/收到的 message 取得 kernel 附带的 `audit
 
 - 已获得 root 且能修改 daemon 或 Inspector 的攻击者。
 - 注入 daemon/Inspector 的系统级 tweak 或 kernel 攻击者。
-- launchd、kernel 或自制固件本体被控制。
+- launchd、kernel 或自定义固件本体被控制。
 
 ## 7. Session 与“没打开就不采样”
 
@@ -483,7 +483,7 @@ Modules：
 不能承诺：
 
 - LaunchDaemon plist 和 Mach service 在具有足够权限的工具眼中完全不存在。
-- root、platform、自制固件上的 tweak 或 kernel 级检测无法看到 daemon process、文件或 launchd registration。
+- root、platform、自定义固件上的 tweak 或 kernel 级检测无法看到 daemon process、文件或 launchd registration。
 - 仅靠随机/伪装 service name 获得安全；名称保密不能代替认证。
 
 这里的目标是最小暴露面和正常 sandbox 隔离，不实现对系统 API 的 hook、伪造或全局隐藏逻辑。
