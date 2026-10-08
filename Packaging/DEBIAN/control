@@ -2,7 +2,7 @@ Package: @PACKAGE_ID@
 Name: Inspector
 Version: @VERSION@
 Architecture: @ARCHITECTURE@
-Description: Live process inspector for @FLAVOR@ jailbreaks
+Description: Live process inspector for iOS on custom firmware (@FLAVOR@)
  See what your device is actually doing. Every running process, refreshed once a
  second, with its CPU share, memory, thread count and owner. Search by name or
  PID, sort by any column, filter down to system, user or app processes, and

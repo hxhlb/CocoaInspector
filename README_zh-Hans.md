@@ -5,7 +5,7 @@
 
 # Inspector
 
-查看越狱 iPhone 或 iPad 上运行的进程。通过实时列表监测 CPU 占用、内存、线程数和进程所有者，并查看各进程的线程、文件、端口和已加载模块。
+查看运行自制固件的 iPhone 或 iPad 上的进程。通过实时列表监测 CPU 占用、内存、线程数和进程所有者，并查看各进程的线程、文件、端口和已加载模块。
 
 ![预览](./Documents/screenshots.png)
 
@@ -15,9 +15,9 @@
 
 **[apt.owngoal.dev](https://apt.owngoal.dev/)**
 
-也可从 [GitHub Releases](https://github.com/owngoal-dev/Inspector/releases) 下载。请选择与越狱匹配的文件。
+也可从 [GitHub Releases](https://github.com/owngoal-dev/Inspector/releases) 下载。请选择与 bootstrap 匹配的文件。
 
-| 越狱 | 软件包 |
+| Bootstrap | 软件包 |
 | --- | --- |
 | [roothide](https://github.com/roothide) | `iphoneos-arm64e` |
 | Rootless（`/var/jb`） | `iphoneos-arm64` |
@@ -45,7 +45,7 @@ sudo inspector self-test
 
 `self-test` 为只读。仅在需要用 CLI 的子进程验证「请求退出」和「强制退出」时加上 `--signal`，它不会针对系统进程。
 
-在 rootless 越狱上，该工具位于 `/var/jb/usr/bin/inspector`。
+使用 rootless bootstrap 时，该工具位于 `/var/jb/usr/bin/inspector`。
 
 ## 从源码构建
 

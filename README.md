@@ -5,7 +5,7 @@
 
 # Inspector
 
-Inspect running processes on your jailbroken iPhone or iPad. Monitor CPU usage, memory, thread counts, and process owners in a live list, then open a process to inspect its threads, files, ports, and loaded modules.
+Inspect running processes on an iPhone or iPad running custom firmware. Monitor CPU usage, memory, thread counts, and process owners in a live list, then open a process to inspect its threads, files, ports, and loaded modules.
 
 ![Preview](./Documents/screenshots.png)
 
@@ -15,9 +15,9 @@ Add the OwnGoal Studio repository in your preferred package manager:
 
 **[apt.owngoal.dev](https://apt.owngoal.dev/)**
 
-Packages are also on [GitHub Releases](https://github.com/owngoal-dev/Inspector/releases). Choose the file that matches your jailbreak.
+Packages are also on [GitHub Releases](https://github.com/owngoal-dev/Inspector/releases). Choose the file that matches your bootstrap.
 
-| Jailbreak | Package |
+| Bootstrap | Package |
 | --- | --- |
 | [roothide](https://github.com/roothide) | `iphoneos-arm64e` |
 | Rootless (`/var/jb`) | `iphoneos-arm64` |
@@ -45,7 +45,7 @@ sudo inspector self-test
 
 `self-test` is read-only. Add `--signal` only when you want to exercise Ask It to Quit and Force Quit on a child of the CLI — it does not target a system process.
 
-On a rootless jailbreak, the tool is `/var/jb/usr/bin/inspector`.
+With a rootless bootstrap, the tool is `/var/jb/usr/bin/inspector`.
 
 ## Build from Source
 

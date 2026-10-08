@@ -1,6 +1,6 @@
 # Inspector
 
-iOS process inspector for roothide and rootless jailbreaks: UIKit app (`Inspector/`), XPC daemon (`Inspectord/`), CLI (`InspectorCLI/`), shared wire/data layer (`Shared/`, `InspectorClient/`).
+iOS process inspector for custom firmware with a roothide or rootless bootstrap: UIKit app (`Inspector/`), XPC daemon (`Inspectord/`), CLI (`InspectorCLI/`), shared wire/data layer (`Shared/`, `InspectorClient/`).
 
 ## Build
 
@@ -22,9 +22,9 @@ iOS process inspector for roothide and rootless jailbreaks: UIKit app (`Inspecto
 - `project.pbxproj` must keep `objectVersion = 77` so Xcode 16+ and the CI runner's Xcode can read it; newer Xcode betas rewrite it on GUI save, and `make check` fails when that happens — revert that line.
 - SourceKit/editor diagnostics in this repo are frequently stale false positives (`PBXFileSystemSynchronizedRootGroup`); trust `xcodebuild` output, not the editor.
 
-## Install on a jailbroken device
+## Install on a device running custom firmware
 
-Install the package produced by `make deb` with your preferred package manager — the `iphoneos-arm64e` build on roothide, the `iphoneos-arm64` build on rootless. The archive installs `Inspector.app`, `usr/bin/inspector`, `usr/libexec/inspectord`, and the on-demand LaunchDaemon plist, at the jailbreak root (roothide) or under `/var/jb` (rootless).
+Install the package produced by `make deb` with your preferred package manager — the `iphoneos-arm64e` build on roothide, the `iphoneos-arm64` build on rootless. The archive installs `Inspector.app`, `usr/bin/inspector`, `usr/libexec/inspectord`, and the on-demand LaunchDaemon plist, at the bootstrap root (roothide) or under `/var/jb` (rootless).
 
 After install, validate with:
 
